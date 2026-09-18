@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+pydantic
+python-multipart
+pandas          # solo para generate_dataset.py / benchmarks, no para el motor
+matplotlib      # gráficas de benchmarks
+numpy           # utilidades numéricas en benchmarks
+pytest          # tests

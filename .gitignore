@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+*.egg-info/
+
+# Archivos binarios del motor (páginas de datos, no deben versionarse)
+*.dat
+*.db
+*.idx
+*.bin
+
+# Archivos para las pruebas
+data/processed/*.csv 
+
+# Resultados de benchmarks (opcional: puedes versionarlos si son pequeños)
+benchmarks/results/*.csv
+benchmarks/results/*.json
+benchmarks/plots/*.png
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# LaTeX
+informe/*.aux
+informe/*.log
+informe/*.pdf
+informe/*.out
+informe/*.toc
+
+# Entorno / IDE
+.env
+.vscode/
+.idea/
+.DS_Store
