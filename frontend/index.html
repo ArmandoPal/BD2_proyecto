@@ -1,12 +1,48 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>Gestor BD Multimodal - Cliente SQL</title>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Atlas · BD II SQL Workspace</title>
+  <link rel="stylesheet" href="src/styles.css">
 </head>
 <body>
-  <!-- TODO: montar los 4 paneles: TableExplorer, QueryEditor, ResultsViewer, MetricsPanel -->
-  <div id="app"></div>
-  <script src="src/services/api.js"></script>
+  <aside class="sidebar">
+    <a class="brand" href="/"><span class="brand-icon">▤</span> atlas<span class="brand-tag">BD II</span></a>
+    <div class="workspace"><span class="workspace-icon">A</span><div>Proyecto relacional<small>Entregable 01 · almacenamiento en disco</small></div></div>
+    <div class="section-label">WORKSPACE</div>
+    <div class="nav-active"><span>⌘</span> Editor SQL <kbd>⌃ ↵</kbd></div>
+    <div class="explorer-heading"><span class="section-label">EXPLORADOR DE TABLAS</span><button id="refresh" class="icon-button" title="Actualizar tablas" aria-label="Actualizar tablas">↻</button></div>
+    <div id="tables" class="table-tree"><div class="muted">Cargando catálogo…</div></div>
+    <div class="sidebar-footer"><span class="dot"></span><div>Motor propio<small>Páginas binarias · RID · I/O real</small></div><span class="version">v1.0</span></div>
+  </aside>
+  <main>
+    <header class="topbar"><div><span class="muted">Workspace</span><span class="slash">/</span><strong>Editor SQL</strong></div><div id="connection" class="connection"><span class="dot"></span> Conectando</div></header>
+    <div class="content">
+      <div class="page-heading"><div><div class="eyebrow">CONSULTAS Y RENDIMIENTO</div><h1>SQL Workspace</h1><p>Explora tus datos y observa cómo los consulta el motor.</p></div><span class="course-badge">CS2042 <span>·</span> Base de Datos II</span></div>
+      <section class="editor-card">
+        <div class="card-toolbar"><div class="editor-tab"><span class="sql-icon">⌘</span> Consulta SQL <span class="tab-dot"></span></div><div class="toolbar-right"><label class="sr-only" for="examples">Ejemplos SQL</label><select id="examples"><option value="">Ejemplos rápidos</option><option value="select">Consultar productos</option><option value="range">Rango de productos</option><option value="index">Crear índice B+</option><option value="hash">Crear índice Hash</option><option value="demo">Crear tabla demo</option><option value="insert">Insertar en demo</option></select><button id="clear" class="text-button">Limpiar</button></div></div>
+        <div class="editor-body"><div id="line-numbers" aria-hidden="true">1</div><div class="code-area"><pre id="highlight" aria-hidden="true"></pre><textarea id="sql" aria-label="Consulta SQL" spellcheck="false" wrap="off">SELECT * FROM products
+WHERE product_id >= 100
+  AND product_id <= 110;</textarea></div></div>
+        <div class="editor-footer"><span id="statement-info">Una sentencia a la vez <span>·</span> Ctrl + Enter para ejecutar</span><button id="run" class="primary-button"><span id="run-icon">▶</span><span id="run-label">Ejecutar consulta</span></button></div>
+      </section>
+      <div class="status-row"><div id="status" role="status"><span class="status-symbol">○</span> Listo para ejecutar</div><button id="reorganize" class="text-button" hidden>Reorganizar tabla</button></div>
+      <section class="metrics" aria-label="Plan de ejecución y métricas">
+        <article class="metric access"><span>RUTA DE ACCESO</span><strong id="access-path">—</strong><small id="index-name">El planner elegirá la ruta</small></article>
+        <article class="metric"><span><i class="read-dot"></i> DISK READS</span><strong id="disk-reads">—</strong><small>páginas leídas</small></article>
+        <article class="metric"><span><i class="write-dot"></i> DISK WRITES</span><strong id="disk-writes">—</strong><small>páginas escritas</small></article>
+        <article class="metric"><span>TIEMPO DE PARSEO</span><strong id="parse-time">—</strong><small>milisegundos</small></article>
+        <article class="metric"><span>TIEMPO DE EJECUCIÓN</span><strong id="exec-time">—</strong><small>milisegundos</small></article>
+      </section>
+      <section class="results-card">
+        <div class="results-heading"><div><span class="result-icon">▦</span><strong>Resultados</strong><span id="row-count" class="count-badge">0 filas</span></div><span id="result-note" class="muted">Los resultados aparecerán aquí</span></div>
+        <div id="results" class="results-scroll"><div class="empty-state"><div class="empty-icon">▤</div><h3>Tu próxima consulta comienza aquí</h3><p>Selecciona una tabla o ejecuta una sentencia SQL.<br>Los resultados y sus métricas provienen del motor en disco.</p></div></div>
+        <div class="results-footer"><span id="page-info">Sin resultados</span><div class="pagination"><label for="page-size">Filas por página</label><select id="page-size"><option>25</option><option selected>100</option><option>250</option></select><button id="previous" class="icon-button" disabled aria-label="Página anterior">‹</button><span id="page-number">1</span><button id="next" class="icon-button" disabled aria-label="Página siguiente">›</button></div></div>
+      </section>
+      <section class="io-history"><div><strong>Actividad de I/O</strong><span>Últimas ejecuciones de esta sesión</span></div><div id="history" class="history-bars"><span class="muted">Ejecuta una consulta para comparar sus accesos.</span></div><div class="legend"><span><i class="read-dot"></i> Lecturas</span><span><i class="write-dot"></i> Escrituras</span></div></section>
+      <footer class="page-footer"><span>Atlas · Proyecto de Base de Datos II</span><span>Heap · Sequential · B+ · Extendible Hashing</span></footer>
+    </div>
+  </main>
+  <script type="module" src="src/app.js"></script>
 </body>
 </html>

@@ -1,0 +1,26 @@
+{
+  "recorded_utc": "2026-09-19T18:10:06.001575+00:00",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "python": "3.12.14",
+  "machine": "AMD64",
+  "packages": {
+    "fastapi": "0.141.1",
+    "uvicorn": "0.53.0",
+    "pytest": "9.1.1",
+    "httpx": "0.28.1",
+    "matplotlib": "3.11.2"
+  },
+  "dataset": {
+    "filename": "products-500000.csv",
+    "bytes": 90764217,
+    "sha256": "ad5ba0e53127ed431d3992e31aaed278a96ce29b1b4c9a2ac756ee70c1d1e9a0"
+  },
+  "source_sha256": "dafba783b364c28cf4e04f455274e68932293347fe2fbedfdf761a75945ca2f5",
+  "source_files": 55,
+  "measurement_notes": [
+    "I/O cuenta transferencias completas de p\u00e1ginas al archivo, no fallos de cach\u00e9 del SO.",
+    "Sin cach\u00e9 de nodos persistente ni fsync por escritura; cach\u00e9 del SO no vaciada.",
+    "Experimentos de inserci\u00f3n incluyen CSV y serializaci\u00f3n; b\u00fasquedas excluyen preparar el fixture.",
+    "No es un benchmark aislado del resto de procesos del sistema."
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "BTREE_build": {
+    "rows": [],
+    "columns": [],
+    "total_rows": 0,
+    "affected_rows": 0,
+    "offset": 0,
+    "limit": 100,
+    "access_path": "CreateIndex",
+    "index_name": null,
+    "disk_reads": 1533832,
+    "disk_writes": 509896,
+    "parse_time_ms": 0.023300002794712782,
+    "exec_time_ms": 137870.47310000344,
+    "message": "\u00cdndice validation_btree construido"
+  },
+  "HASH_build": {
+    "rows": [],
+    "columns": [],
+    "total_rows": 0,
+    "affected_rows": 0,
+    "offset": 0,
+    "limit": 100,
+    "access_path": "CreateIndex",
+    "index_name": null,
+    "disk_reads": 1708131,
+    "disk_writes": 1153581,
+    "parse_time_ms": 0.024600012693554163,
+    "exec_time_ms": 190621.98799999896,
+    "message": "\u00cdndice validation_hash construido"
+  },
+  "rows": 500000,
+  "btree_entries_verified_after_reopen": 500000,
+  "point_queries_per_index": 1002,
+  "btree_height": 3,
+  "hash_global_depth": 12,
+  "verification_io_including_metadata": {
+    "disk_reads": 61950,
+    "disk_writes": 0
+  }
+}

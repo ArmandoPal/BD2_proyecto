@@ -1,8 +1,6 @@
-fastapi
-uvicorn[standard]
-pydantic
-python-multipart
-pandas          # solo para generate_dataset.py / benchmarks, no para el motor
-matplotlib      # gráficas de benchmarks
-numpy           # utilidades numéricas en benchmarks
-pytest          # tests
+fastapi>=0.115,<1
+uvicorn>=0.30,<1
+pydantic>=2,<3
+pytest>=8,<10
+httpx>=0.27,<1
+matplotlib>=3.9,<4
