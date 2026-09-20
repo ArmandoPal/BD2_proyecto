@@ -59,6 +59,12 @@ class DiskManager:
         """derives the page count from the file size, so it never drifts from what is on disk."""
         return os.fstat(self._file.fileno()).st_size // self.page_size
 
+    def truncate(self, num_pages):
+        """cuts the file down to the given number of blocks, used to release trailing empty pages."""
+        if num_pages < 0:
+            raise ValueError("num_pages cannot be negative")
+        self._file.truncate(num_pages * self.page_size)
+
     def _check_id(self, page_id):
         """rejects negative page ids before they turn into a bogus seek offset."""
         if page_id < 0:

@@ -138,6 +138,10 @@ class BufferPool:
         if frame.dirty:
             self.disk.write_page(page_id, frame.page.to_bytes())
 
+    def discard(self, page_id):
+        """drops a frame without writing it back, for pages the file no longer owns."""
+        self._frames.pop(page_id, None)
+
     def flush(self, page_id):
         """writes one dirty page back to disk while keeping it cached."""
         frame = self._frames.get(page_id)
@@ -149,6 +153,12 @@ class BufferPool:
         """writes every dirty page back to disk, leaving the cache populated but clean."""
         for page_id in list(self._frames):
             self.flush(page_id)
+
+    def clear(self):
+        """flushes every frame and empties the cache, so the next access is guaranteed to hit disk."""
+        self.flush_all()
+        self._frames.clear()
+        self.hits = self.misses = 0
 
     def close(self):
         """flushes everything and closes the file; the pool is unusable afterwards."""
