@@ -143,18 +143,23 @@ class Page:
 
     def can_fit(self, length):
         """true when a record of the given length fits, counting compaction as available space."""
+        if self.free_space >= length + SLOT_SIZE:
+            return True                        # fast path: contiguous room, no directory scan needed
         reclaimable = self.free_space_offset - HEADER_SIZE - self.used_bytes
         needed = length + (0 if self._find_tombstone() is not None else SLOT_SIZE)
         return self.free_space + reclaimable >= needed
 
     def insert_record(self, record, at=None):
-        """appends record bytes and returns its slot; reuses a tombstone, or inserts the slot at `at` to keep key order."""
+        """appends record bytes and returns its slot; reuses a tombstone only when the page is tight, or inserts the slot at `at` to keep key order."""
         length = len(record)
         if length == 0 or length > self.page_size:
             raise ValueError("record length out of range")
 
-        reuse = self._find_tombstone() if at is None else None
-        extra_slot = 0 if reuse is not None else SLOT_SIZE
+        if at is None and self.free_space >= length + SLOT_SIZE:
+            reuse, extra_slot = None, SLOT_SIZE      # fast path: append without scanning for holes
+        else:
+            reuse = self._find_tombstone() if at is None else None
+            extra_slot = 0 if reuse is not None else SLOT_SIZE
 
         if self.free_space < length + extra_slot:
             if not self.can_fit(length):

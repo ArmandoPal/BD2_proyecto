@@ -52,16 +52,32 @@ def test_records_are_addressable_by_slot():
         assert page.get_record(slot) == f"row-{i}".encode()
 
 
-def test_delete_is_logical_and_frees_the_slot_for_reuse():
+def test_delete_is_logical_and_the_record_disappears():
     page = Page(0, 4096)
     page.insert_record(b"aaa")
     page.insert_record(b"bbb")
     assert page.delete_record(0) is True
     assert page.get_record(0) is None
     assert page.record_count == 1
-    reused = page.insert_record(b"ccc")
-    assert reused == 0  # tombstone recycled instead of growing the directory
-    assert page.slot_count == 2
+
+
+def test_a_roomy_page_appends_rather_than_hunting_for_holes():
+    page = Page(0, 4096)
+    page.insert_record(b"aaa")
+    page.insert_record(b"bbb")
+    page.delete_record(0)
+    assert page.insert_record(b"ccc") == 2     # contiguous room: no directory scan, RIDs stay unique
+    assert page.slot_count == 3
+
+
+def test_a_tight_page_recycles_a_tombstone_instead_of_growing_the_directory():
+    page = Page(0, 1024)
+    slots = []
+    while page.can_fit(60):
+        slots.append(page.insert_record(b"x" * 60))
+    page.delete_record(slots[0])
+    assert page.insert_record(b"y" * 60) == slots[0]
+    assert page.slot_count == len(slots)
 
 
 def test_compact_reclaims_the_bytes_left_by_deletes():

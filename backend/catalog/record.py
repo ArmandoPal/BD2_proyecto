@@ -50,6 +50,30 @@ def type_size(spec):
     return struct.calcsize("<" + type_format(spec))
 
 
+def make_coercer(spec):
+    """builds, once per column, the function that converts a value into what the struct code expects."""
+    spec = normalize_type(spec)
+    if spec == "INT":
+        return int
+    if spec == "FLOAT":
+        return float
+    if spec == "BOOL":
+        return bool
+    width = int(CHAR_PATTERN.match(spec).group(1))
+
+    def to_bytes(value):
+        """encodes a string to utf-8 and truncates it to the declared width."""
+        return str(value).encode("utf-8")[:width]
+    return to_bytes
+
+
+def make_decoder(spec):
+    """builds, once per column, the function that turns an unpacked value back into a python value."""
+    if normalize_type(spec).startswith("CHAR"):
+        return lambda value: value.rstrip(b"\x00").decode("utf-8", errors="replace")
+    return lambda value: value
+
+
 def coerce(spec, value):
     """converts a python value into the exact type the struct code expects."""
     spec = normalize_type(spec)
@@ -71,15 +95,30 @@ def decode(spec, value):
     return value
 
 
+_VALUE_CODECS = {}
+
+
+def value_codec(spec):
+    """returns and caches the <struct, coercer, decoder> triple for a single-column type."""
+    spec = normalize_type(spec)
+    codec = _VALUE_CODECS.get(spec)
+    if codec is None:
+        codec = (struct.Struct("<" + type_format(spec)), make_coercer(spec), make_decoder(spec))
+        _VALUE_CODECS[spec] = codec
+    return codec
+
+
 def pack_value(spec, value):
     """packs a single value, used for index keys where only one column matters."""
-    return struct.pack("<" + type_format(spec), coerce(spec, value))
+    packer, to_storage, _ = value_codec(spec)
+    return packer.pack(to_storage(value))
 
 
 def unpack_value(spec, raw):
     """unpacks a single value packed by pack_value()."""
-    (value,) = struct.unpack("<" + type_format(spec), raw)
-    return decode(spec, value)
+    packer, _, from_storage = value_codec(spec)
+    (value,) = packer.unpack(raw)
+    return from_storage(value)
 
 
 def pack_rid(rid):
@@ -131,7 +170,10 @@ class Schema:
             raise ValueError("a table needs at least one column")
         self.columns = list(columns)
         self.format = "<" + "".join(type_format(c.dtype) for c in self.columns)
-        self.record_size = struct.calcsize(self.format)
+        self._struct = struct.Struct(self.format)
+        self._coercers = [make_coercer(c.dtype) for c in self.columns]
+        self._decoders = [make_decoder(c.dtype) for c in self.columns]
+        self.record_size = self._struct.size
         self._by_name = {c.name.lower(): i for i, c in enumerate(self.columns)}
         if len(self._by_name) != len(self.columns):
             raise ValueError("duplicate column names")
@@ -164,13 +206,12 @@ class Schema:
         """coerces every value to its column type and packs the tuple into a fixed-size record."""
         if len(values) != len(self.columns):
             raise ValueError(f"expected {len(self.columns)} values, got {len(values)}")
-        coerced = [coerce(c.dtype, v) for c, v in zip(self.columns, values)]
-        return struct.pack(self.format, *coerced)
+        return self._struct.pack(*[to_storage(v) for to_storage, v in zip(self._coercers, values)])
 
     def unpack(self, raw):
         """unpacks a record back into a list of python values, trimming CHAR padding."""
-        values = struct.unpack(self.format, raw[:self.record_size])
-        return [decode(c.dtype, v) for c, v in zip(self.columns, values)]
+        values = self._struct.unpack(raw[:self.record_size])
+        return [from_storage(v) for from_storage, v in zip(self._decoders, values)]
 
     def to_row(self, raw):
         """unpacks a record straight into a name -> value dict for the API layer."""
