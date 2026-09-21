@@ -1,2 +1,10 @@
-\section{Conclusiones}
-% TODO: completar sección conclusiones
+\section{Conclusiones y límites}
+La suite final aprobó 41 pruebas, con cero fallos. El motor persiste páginas, tablas e índices y recupera su estado al reabrir archivos sin reconstruir obligatoriamente los índices. Los tests verifican splits de hojas e internos, duplicación de directorio, búsqueda por hojas enlazadas, reutilización de slots, overflow y reorganización. Se verificaron 500\,000 productos persistidos comparando los bytes de cada registro con el CSV original. Además, se construyeron y reabrieron índices públicos sobre ese volumen: se comprobaron las 500\,000 entradas del B+ en orden y 1002 búsquedas por cada índice B+ y Hash.
+
+Las búsquedas de igualdad muestran la diferencia esperada: el Heap recorre todas sus páginas, mientras el B+ depende principalmente de la altura y el Hash de directorio y bucket. Los rangos amplios requieren más páginas tanto en B+ como en Sequential. Las páginas grandes reducen la cantidad de nodos y pueden reducir la altura; sin embargo, serializar más entradas por nodo también puede aumentar el tiempo de CPU en Python.
+
+La implementación es académica y de un solo proceso escritor. No incluye WAL, transacciones ACID, rollback de sentencias ni recuperación automática ante interrupción durante escrituras múltiples o reorganización. La reorganización reemplaza archivos pero no es una transacción atómica que abarque todos los índices. Debe evitarse ejecutar importadores simultáneamente con el servidor sobre el mismo directorio. Una importación interrumpida deja las filas ya insertadas; para repetirla se utiliza una tabla o directorio nuevos.
+
+El B+ no fusiona nodos al borrar y el Hash no contrae el directorio. El overflow requiere mantenimiento explícito. CHAR(n) limita bytes, no caracteres Unicode. El subconjunto SQL requiere una PRIMARY KEY simple por tabla y no soporta NULL. Estos límites están documentados y no se presentan como funcionalidades implementadas.
+
+La guía \texttt{EXPOSICION.md} relaciona cada algoritmo con sus archivos y funciones e incluye un guion de demostración. La grabación del equipo y sus datos personales de portada deben incorporarse al momento de la entrega académica.

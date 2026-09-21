@@ -1,0 +1,12 @@
+{
+  "viewports": [
+    1366,
+    1920,
+    760
+  ],
+  "real_rows": 11,
+  "pagination": true,
+  "pagination_uses_executed_sql": true,
+  "error_state": true,
+  "console_errors": []
+}
