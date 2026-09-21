@@ -78,6 +78,12 @@ class QueryExecutor:
                 "CreateIndex",
                 f"Índice {query.index_name} construido",
             )
+        elif query.kind == "DROP_TABLE":
+            self.schema_manager.drop_table(query.table)
+            result.access_path, result.message = (
+                "DropTable",
+                f"Tabla {query.table} eliminada",
+            )
         else:
             table = self.schema_manager.get_table(query.table)
             with TableStorage(self.schema_manager, table, self.counter) as storage:
@@ -89,12 +95,13 @@ class QueryExecutor:
                     plan = self.planner.choose_access_path(query)
                     result.access_path = plan.access_path.value
                     result.index_name = plan.index.name if plan.index else None
-                    if query.projection == ["*"]:
-                        result.columns = [c.name for c in table.columns]
-                    else:
-                        result.columns = [
-                            table.column(c).name for c in query.projection
-                        ]
+                    if query.kind == "SELECT":
+                        if query.projection == ["*"]:
+                            result.columns = [c.name for c in table.columns]
+                        else:
+                            result.columns = [
+                                table.column(c).name for c in query.projection
+                            ]
                     for rid, raw in self._candidates(storage, plan, query):
                         row = storage.serializer.unpack(raw)
                         if not all(
@@ -118,6 +125,8 @@ class QueryExecutor:
             result.message = (
                 f"{result.total_rows} filas encontradas"
                 if query.kind == "SELECT"
+                else f"{result.affected_rows} filas eliminadas"
+                if query.kind == "DELETE"
                 else f"{result.affected_rows} filas afectadas"
             )
         return result

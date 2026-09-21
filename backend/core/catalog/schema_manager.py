@@ -108,6 +108,21 @@ class SchemaManager:
             raise ValueError(f"Tabla inexistente: {name}")
         return self.tables[name]
 
+    def drop_table(self, name):
+        table = self.get_table(name)
+        filenames = [table.filename]
+        if table.organization == "SEQUENTIAL":
+            filenames.append(table.filename + ".overflow")
+        for index in table.indexes:
+            filenames.append(index.filename)
+            if index.kind == "HASH":
+                filenames.append(index.filename + ".dir")
+        # Archivos exactos del catálogo: nunca borrar por prefijo o comodín.
+        for filename in filenames:
+            (self.directory / filename).unlink(missing_ok=True)
+        del self.tables[table.name]
+        self.save()
+
     def check_index_name(self, name):
         identifier(name)
         if any(i.name == name for t in self.tables.values() for i in t.indexes):
