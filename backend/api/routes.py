@@ -1,6 +1,11 @@
 """Rutas HTTP del cliente SQL; las operaciones se serializan con un lock local."""
 
-from fastapi import APIRouter, HTTPException, Request
+import tempfile
+from typing import Literal
+
+from fastapi import APIRouter, HTTPException, Request, Query
+from starlette.concurrency import run_in_threadpool
+from backend.core.catalog.csv_importer import import_csv
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api")
@@ -46,3 +51,33 @@ def reorganize_table(body: ReorganizeRequest, request: Request):
     return run_operation(
         request, lambda engine: engine.reorganize(body.table_name).to_dict()
     )
+
+
+@router.post("/explain")
+def explain_query(body: QueryRequest, request: Request):
+    return run_operation(request, lambda engine: engine.explain(body.sql, body.offset, body.limit))
+
+
+MAX_CSV_BYTES = 256 * 1024 * 1024
+
+
+@router.post("/tables/import-csv")
+async def import_csv_file(
+    request: Request,
+    table_name: str = Query(min_length=1, max_length=128, pattern=r"^[A-Za-z_][A-Za-z0-9_]*$"),
+    limit: int | None = Query(default=None, ge=1),
+    organization: Literal["HEAP", "SEQUENTIAL"] = "HEAP",
+    delimiter: Literal["auto", "comma", "semicolon", "tab"] = "auto",
+):
+    # Cuerpo CSV por bloques: no materializar el archivo completo en RAM.
+    size = 0
+    with tempfile.TemporaryFile() as upload:
+        async for chunk in request.stream():
+            size += len(chunk)
+            if size > MAX_CSV_BYTES:
+                raise HTTPException(status_code=413, detail="El CSV supera el máximo de 256 MB")
+            await run_in_threadpool(upload.write, chunk)
+        return await run_in_threadpool(
+            run_operation, request,
+            lambda engine: import_csv(engine, upload, table_name, limit, organization, delimiter),
+        )

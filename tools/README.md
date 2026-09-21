@@ -20,3 +20,22 @@ node tools/check_frontend.cjs
 El servidor debe estar activo en `http://127.0.0.1:8000`, con una tabla `products` de al menos 200 filas (la base local preparada contiene 500000). `BD2_URL` permite elegir otro origen. `PLAYWRIGHT_MODULE` permite usar una instalación existente de Playwright y `CHROME_PATH` un ejecutable de Chrome existente.
 
 El script prueba resultados reales, paginación, separación entre SQL editado y SQL ejecutado, métricas tras errores, tres tamaños de pantalla y ausencia de errores JavaScript. Guarda capturas y un JSON en `output/qa/`. Estos archivos de inspección local no se versionan; el resumen de la validación final se conserva también en `benchmarks/results/frontend_validation.json`.
+
+## Importación CSV y panel del plan
+
+`check_csv_plan.cjs` prueba la carga desde el formulario, el límite opcional, la inferencia de columnas, errores de CSV/tabla existente, actualización del catálogo, plan real debajo de Resultados, uso de índice B+, limpieza del plan ante errores y ejemplos aplicados a tablas con distintas columnas y tipos de clave. Verifica anchos de 1366, 760 y 390 px y guarda capturas y resultados en `output/qa/csv-plan/`.
+
+Inicia un servidor separado con datos temporales:
+
+```powershell
+python run.py --data-dir tmp/csv-plan-manual --port 8018
+```
+
+En otra terminal, con Node y Playwright disponibles:
+
+```powershell
+$env:BD2_URL = 'http://127.0.0.1:8018'
+node tools/check_csv_plan.cjs
+```
+
+`BD2_URL` es obligatorio para esta prueba. Admite `PLAYWRIGHT_MODULE` y `CHROME_PATH`, igual que el script anterior. Crea tablas con nombres únicos y las elimina al completar todas las comprobaciones.
