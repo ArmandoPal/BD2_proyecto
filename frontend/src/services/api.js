@@ -11,3 +11,13 @@ export const runQuery = (sql, offset=0, limit=100) => request('/query', {sql,off
 export const listTables = () => request('/tables');
 export const reorganizeTable = table_name => request('/tables/reorganize', {table_name});
 export const health = () => request('/health');
+
+export async function importCsv(file, options) {
+  const query = new URLSearchParams(options);
+  const response = await fetch(`/api/tables/import-csv?${query}`, {
+    method: 'POST', headers: {'Content-Type':'text/csv'}, body: file
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail));
+  return data;
+}

@@ -27,6 +27,18 @@ En Linux/macOS usa `.venv/bin/python` en lugar de `.venv\Scripts\python.exe`. Co
 
 En esta copia local ya se instaló y verificó `.venv`, y `data/database/` contiene `products` con 500000 filas y `products_demo`. Se puede iniciar directamente con `.venv\Scripts\python.exe run.py`. Para repetir la carga completa, indique una tabla o directorio nuevo, por ejemplo `--data-dir data/otra_carga`. El comando `python run.py --data-dir RUTA --port 8001` permite elegir otro directorio y puerto. Usa un solo proceso escritor: detén el backend antes de importar al mismo directorio.
 
+## Importar un CSV desde el navegador
+
+Pulsa **Importar CSV**, selecciona el archivo y escribe el nombre de la nueva tabla. El **límite de filas es opcional**: vacío importa todas; con un número importa como máximo esa cantidad, aunque el archivo tenga menos. Puedes elegir Heap o Sequential y detectar el separador o indicar coma, punto y coma o tabulación.
+
+El CSV debe tener encabezados y codificación UTF-8 (con o sin BOM); el límite de subida es 256 MB. Los nombres se normalizan a identificadores SQL (por ejemplo, `Nombre del artículo` pasa a `nombre_del_articulo`). Se rechazan encabezados vacíos o que generen nombres repetidos. Las columnas aparecen en el explorador al completar la importación.
+
+El motor determina `INT`, `FLOAT` y `CHAR(n)` leyendo todas las filas seleccionadas. Los códigos con ceros iniciales, valores vacíos y columnas con mezcla de números y texto se conservan como texto. Las longitudes CHAR se calculan en bytes UTF-8. Se agrega `_row_id INT PRIMARY KEY` con valores consecutivos desde 1, conservando las columnas originales; así también se pueden importar CSV sin una clave única. El registro completo debe caber en una página del motor.
+
+La carga lee el archivo por bloques y realiza dos pasadas sin guardar todas las filas en RAM. Primero valida e infiere el esquema y después escribe mediante `TableStorage` y los archivos del motor. La nueva tabla se publica en el catálogo al finalizar. Los errores controlados descartan la carga temporal y una tabla existente se conserva. No hay recuperación transaccional ante caída del proceso durante la publicación de archivos.
+
+Al terminar se muestra el número de filas importadas y queda preparado `SELECT * FROM nombre_tabla;` en el editor. El I/O reportado cuenta las páginas binarias creadas y escritas por el motor, excluyendo la subida y la lectura del CSV; el tiempo incluye la inferencia y la carga en el servidor. El importador de productos por consola sigue disponible con su esquema específico.
+
 ## Dataset real: products-500000.csv
 
 Se inspeccionó el archivo proporcionado: **500 000 filas**, 90 764 217 bytes, claves `Index` únicas y ascendentes de 1 a 500 000. `Index` se convierte en `product_id`; `Added Date` en `added_date` y `Internal ID` en `internal_id`. No se presume una fuente externa distinta del archivo recibido.
@@ -94,18 +106,29 @@ DROP TABLE empleados;
 
 También se admite `USING SEQUENTIAL`, SELECT sin WHERE, proyección de columnas, operadores `=`, `<`, `>`, `<=`, `>=`, `!=`, `<>` y predicados combinados con AND. Una comilla literal se escribe `'O''Brien'`. No hay JOIN, UPDATE, OR, agregados, NULL ni SQL completo.
 
-`DELETE FROM tabla WHERE ...` elimina todas las filas que cumplen el filtro y actualiza los índices, incluido el de PRIMARY KEY. `DELETE FROM tabla` vacía la tabla y conserva su esquema e índices; la paginación no limita los borrados. `DROP TABLE tabla` elimina del catálogo la tabla y borra sus archivos de datos, overflow e índices (incluidos los directorios Hash). Después se puede crear otra tabla con el mismo nombre. Una tabla inexistente produce un error. El menú «Ejemplos rápidos» incluye borrar una fila, vaciar y eliminar `products_demo`.
+`DELETE FROM tabla WHERE ...` elimina todas las filas que cumplen el filtro y actualiza los índices, incluido el de PRIMARY KEY. `DELETE FROM tabla` vacía la tabla y conserva su esquema e índices; la paginación no limita los borrados. `DROP TABLE tabla` elimina del catálogo la tabla y borra sus archivos de datos, overflow e índices (incluidos los directorios Hash). Después se puede crear otra tabla con el mismo nombre. Una tabla inexistente produce un error. Los ejemplos usan la tabla seleccionada en el explorador. «Ejemplos rápidos» prepara consultas, búsquedas por clave y rango, índices, inserciones y borrados con los nombres y tipos de esa tabla. Ajusta los valores de ejemplo antes de ejecutarlos, especialmente la nueva PRIMARY KEY al insertar. Los nombres de índices y de tablas demo evitan colisiones con el catálogo.
 
 El planificador usa índices públicos: igualdad → `IndexScan`; rango con B+ → `IndexRangeScan`; resto → `SeqScan`. Si B+ y Hash aplican a igualdad, prefiere Hash. El índice privado de PRIMARY KEY no se utiliza para seleccionar filas. En Sequential, `SeqScan` puede usar búsqueda binaria y recorrido acotado del archivo ordenado.
+
+## Panel del plan de ejecución
+
+El panel **Plan de ejecución**, debajo de **Resultados**, representa los operadores en orden de ejecución: recorrido completo o acceso a índice, recuperación por RID, filtro, proyección y resultados; para `DELETE`, muestra el borrado y el mantenimiento de índices. En Sequential distingue el recorrido acotado por la PRIMARY KEY del recorrido completo.
+
+- **Ejecutar consulta** muestra el plan real, las filas examinadas, filtradas y devueltas o eliminadas, y las métricas totales de la operación.
+- El plan conserva el SQL al que corresponde, la tabla, el índice y el motivo de selección. Se puede plegar el panel. Una consulta fallida retira el plan anterior.
+
+Los tiempos y el I/O son totales por operación; no se atribuyen porcentajes de costo o tiempos a operadores individuales. La elección sigue las reglas del planificador, sin un optimizador basado en estadísticas.
 
 ## API y métricas
 
 - `POST /api/query`: `{"sql":"SELECT * FROM products WHERE product_id = 500;", "offset":0, "limit":100}`.
+- `POST /api/explain`: `{"sql":"SELECT * FROM products WHERE product_id = 500;"}`. Devuelve el plan sin ejecutar; también admite DELETE.
+- `POST /api/tables/import-csv?table_name=mi_tabla&limit=1000&organization=HEAP&delimiter=auto`: cuerpo binario del CSV (`Content-Type: text/csv`). Omitir `limit` importa todas las filas. Devuelve métricas, esquema y correspondencia de encabezados.
 - `GET /api/tables`: tablas, columnas, organización, tamaño de página e índices, incluidos los de integridad marcados como internos.
 - `POST /api/tables/reorganize`: `{"table_name":"products_seq"}`. Reorganiza principal/overflow y reconstruye todos los índices.
 - `GET /api/health`: disponibilidad del backend.
 
-Las respuestas incluyen `rows`, `columns`, `total_rows`, `affected_rows`, `access_path`, `index_name`, `disk_reads`, `disk_writes`, `parse_time_ms` y `exec_time_ms`. La respuesta contiene como máximo 1000 filas. El total se cuenta recorriendo los candidatos; cambiar de página ejecuta de nuevo la consulta.
+Las respuestas de consultas incluyen `execution_plan`, `rows`, `columns`, `total_rows`, `affected_rows`, `access_path`, `index_name`, `disk_reads`, `disk_writes`, `parse_time_ms` y `exec_time_ms`. La respuesta contiene como máximo 1000 filas. El total se cuenta recorriendo los candidatos; cambiar de página ejecuta de nuevo la consulta.
 
 **Qué se cuenta:** llamadas completadas de lectura/escritura de páginas, incluidas páginas de metadata y asignaciones. El catálogo JSON, aperturas de archivos, `stat`, `rename` y `truncate` no se contabilizan como páginas. No son estimaciones ni mediciones de fallos de caché del SO. Python usa archivos sin buffering, pero el sistema operativo puede mantener caché. No se fuerza `fsync` por escritura.
 
@@ -134,12 +157,14 @@ backend/
 │   │   └── extendible_hash.py     Hashing, doubling y split
 │   ├── catalog/                   Esquemas y coordinación tabla/índices
 │   │   ├── schema_manager.py      Metadata de tablas e índices
-│   │   └── table_storage.py       Apertura, PRIMARY KEY y mantenimiento
+│   │   ├── table_storage.py       Apertura, PRIMARY KEY y mantenimiento
+│   │   └── csv_importer.py        Inferencia e importación genérica de CSV
 │   └── query_engine/              Parser, Planner y Executor
 │       ├── tokenizer.py           Tokens del subconjunto SQL
 │       ├── query_models.py        ParsedQuery y predicados
 │       ├── parser.py              Gramática y validación sintáctica
 │       ├── planner.py             choose_access_path()
+│       ├── execution_plan.py      Operadores y descripción del plan
 │       └── executor.py            SQL, rutas y métricas
 ├── api/routes.py                  API REST
 ├── main.py                        FastAPI y frontend estático
@@ -149,6 +174,9 @@ frontend/
 └── src/
     ├── styles.css             Diseño y adaptación de tamaño
     ├── app.js                 Interacción, resultados y métricas
+    ├── csv-import.js          Formulario de importación
+    ├── execution-plan.js      Visualización del plan
+    ├── sql-examples.js        Plantillas basadas en el catálogo
     └── services/api.js        Solicitudes reales a FastAPI
 data/
 ├── products.py                Esquema y lectura streaming del CSV
@@ -180,7 +208,7 @@ Las cinco carpetas que antes estaban directamente bajo `backend/` se trasladaron
 .venv\Scripts\python.exe -m pytest backend/tests -q
 ```
 
-La última ejecución aprobó **63 pruebas, con 0 fallos**. La suite verifica Page Layout, RID, contador, offset, tipos, Heap/Free-List, Sequential/overflow/reorganización, B+ multinivel y rangos, Hash/doubling, persistencia, SQL, planner, executor y API, incluidos DELETE masivos con mantenimiento de índices y DROP TABLE con recreación. Las pruebas usan archivos temporales.
+La última ejecución aprobó **89 pruebas, con 0 fallos**. La suite verifica Page Layout, RID, contador, offset, tipos, Heap/Free-List, Sequential/overflow/reorganización, B+ multinivel y rangos, Hash/doubling, persistencia, SQL, planner, executor y API, incluidos DELETE masivos con mantenimiento de índices y DROP TABLE con recreación, importación genérica de CSV y planes reales o previos sin efectos sobre los datos. Las pruebas usan archivos temporales.
 
 La reorganización a `backend/core/` se verificó con las mismas 41 pruebas antes y después, los cuatro experimentos con 1000 productos y una prueba HTTP/navegador en un proceso nuevo. Esas comprobaciones se guardan en `output/qa/core-refactor/` (excluido de Git); no sustituyen los CSV ni las gráficas históricos. También se compararon la lógica Python y los hashes de los datos/evidencias existentes.
 

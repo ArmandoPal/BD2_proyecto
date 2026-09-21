@@ -10,6 +10,7 @@ from backend.core.storage.page import Page
 from backend.core.storage.record_serializer import RecordSerializer, KeyCodec
 from .parser import SQLParser
 from .planner import QueryPlanner, AccessPath
+from .execution_plan import describe_plan, operation_plan
 
 COMPARE = {
     "=": operator.eq,
@@ -37,6 +38,7 @@ class QueryResult:
     parse_time_ms: float = 0
     exec_time_ms: float = 0
     message: str = ""
+    execution_plan: dict | None = None
 
     def to_dict(self):
         return asdict(self)
@@ -102,19 +104,26 @@ class QueryExecutor:
                             result.columns = [
                                 table.column(c).name for c in query.projection
                             ]
+                    examined = matched = 0
                     for rid, raw in self._candidates(storage, plan, query):
+                        examined += 1
                         row = storage.serializer.unpack(raw)
                         if not all(
                             COMPARE[c.operator](row[c.column], c.value)
                             for c in query.conditions
                         ):
                             continue
+                        matched += 1
                         if query.kind == "DELETE":
                             result.affected_rows += storage.delete(rid, raw)
                         else:
                             if offset <= result.total_rows < offset + limit:
                                 result.rows.append({c: row[c] for c in result.columns})
                             result.total_rows += 1
+                    result.execution_plan = describe_plan(query, table, plan, {
+                        "examined": examined, "matched": matched,
+                        "returned": len(result.rows), "affected": result.affected_rows,
+                    })
         result.parse_time_ms = (parsed - start) * 1000
         result.exec_time_ms = (time.perf_counter() - parsed) * 1000
         result.disk_reads, result.disk_writes = (
@@ -129,7 +138,32 @@ class QueryExecutor:
                 if query.kind == "DELETE"
                 else f"{result.affected_rows} filas afectadas"
             )
+        if result.execution_plan is None:
+            result.execution_plan = operation_plan(
+                query.kind, query.table, result.access_path, result.message,
+                result.affected_rows if query.kind == "INSERT" else None,
+            )
+        result.execution_plan.update(sql=sql, metrics={
+            "disk_reads": result.disk_reads, "disk_writes": result.disk_writes,
+            "parse_time_ms": result.parse_time_ms, "exec_time_ms": result.exec_time_ms,
+        })
         return result
+
+    def explain(self, sql, offset=0, limit=100):
+        if offset < 0 or not 1 <= limit <= 1000:
+            raise ValueError("Paginación inválida")
+        query = SQLParser().parse(sql)
+        if query.kind not in ("SELECT", "DELETE"):
+            raise ValueError("Ver plan admite SELECT y DELETE; no ejecuta la sentencia")
+        table = self.schema_manager.get_table(query.table)
+        self._validate_conditions(query, table)
+        if query.projection != ["*"]:
+            for column in query.projection:
+                table.column(column)
+        plan = self.planner.choose_access_path(query)
+        description = describe_plan(query, table, plan)
+        description.update(sql=sql, metrics=None)
+        return description
 
     def _validate_conditions(self, query, table):
         for condition in query.conditions:

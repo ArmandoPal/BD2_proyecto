@@ -1,6 +1,9 @@
 import {runQuery, listTables, reorganizeTable, health} from './services/api.js';
+import {renderPlan} from './execution-plan.js';
+import {setupCsvImport} from './csv-import.js';
+import {sqlExample} from './sql-examples.js';
 const $ = id => document.getElementById(id);
-let busy=false, currentSql='', offset=0, total=0, selectedTable=null;
+let busy=false, currentSql='', offset=0, total=0, selectedTable=null, catalogTables=[];
 const activity=[];
 const format = n => new Intl.NumberFormat('es-PE').format(n);
 function element(tag, text, className='') { const node=document.createElement(tag); node.textContent=text; node.className=className; return node; }
@@ -20,7 +23,7 @@ function highlight() {
 }
 function syncScroll(){ $('highlight').scrollTop=$('sql').scrollTop; $('highlight').scrollLeft=$('sql').scrollLeft; $('line-numbers').scrollTop=$('sql').scrollTop; }
 function setStatus(text,kind=''){ $('status').className=kind; $('status').replaceChildren(element('span',kind==='success'?'✓':kind==='error'?'!':'○','status-symbol'),document.createTextNode(text)); }
-function setBusy(value){ busy=value; for(const id of ['run','clear','examples','reorganize','page-size','refresh']) $(id).disabled=value; $('run-label').textContent=value?'Ejecutando…':'Ejecutar consulta'; $('run-icon').textContent=value?'◌':'▶'; $('previous').disabled=value||offset===0; $('next').disabled=value||offset+Number($('page-size').value)>=total; }
+function setBusy(value){ busy=value; for(const id of ['run','clear','examples','reorganize','page-size','refresh','import-open']) $(id).disabled=value; $('run-label').textContent=value?'Ejecutando…':'Ejecutar consulta'; $('run-icon').textContent=value?'◌':'▶'; $('previous').disabled=value||offset===0; $('next').disabled=value||offset+Number($('page-size').value)>=total;updateExamples(); }
 function metrics(result){
   $('access-path').textContent=result.access_path;
   $('index-name').textContent=result.index_name?`Índice: ${result.index_name}`:result.access_path==='SeqScan'?'Organización física de la tabla':'Operación del motor';
@@ -52,25 +55,26 @@ async function execute(pageOffset=0, reuseExecutedSql=false){
   if(!reuseExecutedSql)currentSql=$('sql').value.trim();
   if(!currentSql){setStatus('Escribe una consulta para continuar.','error');return;}
   offset=pageOffset;setBusy(true);setStatus('Ejecutando consulta sobre archivos en disco…');
-  try{const result=await runQuery(currentSql,offset,Number($('page-size').value));metrics(result);showResults(result);setStatus(`Consulta completada · ${result.message}`,'success');await refreshTables();}
-  catch(error){setStatus(error.message,'error');total=0;for(const id of ['access-path','disk-reads','disk-writes','parse-time','exec-time'])$(id).textContent='—';$('index-name').textContent='Consulta fallida';$('results').replaceChildren(element('div',error.message,'empty-state'));$('row-count').textContent='0 filas';$('page-info').textContent='Sin resultados';$('result-note').textContent='Consulta fallida';}
+  try{const result=await runQuery(currentSql,offset,Number($('page-size').value));metrics(result);showResults(result);renderPlan(result.execution_plan);setStatus(`Consulta completada · ${result.message}`,'success');await refreshTables();}
+  catch(error){setStatus(error.message,'error');renderPlan(null,'No hay plan disponible para la consulta fallida.');total=0;for(const id of ['access-path','disk-reads','disk-writes','parse-time','exec-time'])$(id).textContent='—';$('index-name').textContent='Consulta fallida';$('results').replaceChildren(element('div',error.message,'empty-state'));$('row-count').textContent='0 filas';$('page-info').textContent='Sin resultados';$('result-note').textContent='Consulta fallida';}
   finally{setBusy(false);}
 }
 async function refreshTables(){
-  const {tables}=await listTables();$('tables').replaceChildren();
-  selectedTable=tables.find(table=>table.name===selectedTable?.name)??null;
-  if(!tables.length){const empty=element('div','','table-detail');empty.append(element('p','Todavía no hay tablas.'),element('p','Usa «Crear tabla demo» o carga products con el importador.'));$('tables').append(empty);}
+  const {tables}=await listTables();catalogTables=tables;$('tables').replaceChildren();
+  selectedTable=tables.find(table=>table.name===selectedTable?.name)??tables[0]??null;
+  if(!tables.length){const empty=element('div','','table-detail');empty.append(element('p','Todavía no hay tablas.'),element('p','Usa «Importar CSV» o el ejemplo «Crear tabla demo».'));$('tables').append(empty);}
   for(const table of tables){
-    const details=document.createElement('details');details.className='table-entry';details.open=selectedTable?.name===table.name;
+    const details=document.createElement('details');details.className='table-entry';details.dataset.table=table.name;details.open=selectedTable?.name===table.name;
     const summary=document.createElement('summary');summary.append(element('span','▦','muted'),element('span',table.name,'table-name'),element('span',table.organization,'org-badge'));details.append(summary);
     const content=element('div','','table-detail');content.append(element('div','Columnas','tree-label'));
-    table.columns.forEach(c=>{const row=element('div','','column-row');row.append(element('span',(c.primary_key?'⚿ ':'')+c.name),element('small',c.dtype));content.append(row);});
+    table.columns.forEach(c=>{const row=element('div','','column-row');row.append(element('span',c.name),element('small',c.dtype));content.append(row);});
     content.append(element('div','Índices','tree-label'));
     table.indexes.forEach(index=>content.append(element('div',`${index.kind} · ${index.internal?'PRIMARY KEY (interno)':index.name}`,'index-row')));
-    const select=element('button','Consultar tabla →','table-select');select.onclick=()=>{selectedTable=table;$('sql').value=`SELECT * FROM ${table.name};`;highlight();updateReorganize();$('sql').focus();};content.append(select);details.append(content);
-    details.addEventListener('toggle',()=>{if(details.open){selectedTable=table;updateReorganize();}});$('tables').append(details);
+    const select=element('button','Consultar tabla →','table-select');select.onclick=()=>chooseTable(table.name,true);content.append(select);details.append(content);
+    details.addEventListener('toggle',()=>{if(details.open&&details.isConnected&&selectedTable?.name!==table.name)chooseTable(table.name);});$('tables').append(details);
   }
-  updateReorganize();
+  updateReorganize();updateExamples();
+  if(selectedTable&&!$('sql').value.trim()){$('sql').value=`SELECT * FROM ${selectedTable.name};`;highlight();}
 }
 function updateReorganize(){ $('reorganize').hidden=selectedTable?.organization!=='SEQUENTIAL';$('reorganize').textContent=selectedTable?`Reorganizar ${selectedTable.name}`:''; }
 $('run').onclick=()=>execute();$('sql').addEventListener('input',highlight);$('sql').addEventListener('scroll',syncScroll);
@@ -80,10 +84,28 @@ $('refresh').onclick=()=>refreshTables().catch(error=>setStatus(error.message,'e
 $('previous').onclick=()=>execute(Math.max(0,offset-Number($('page-size').value)),true);
 $('next').onclick=()=>execute(offset+Number($('page-size').value),true);
 $('page-size').onchange=()=>{if(!busy && total>0)execute(0,true);};
+function updateExamples(){
+  for(const option of $('examples').options)option.disabled=!!option.value&&option.value!=='demo'&&!selectedTable;
+}
+function chooseTable(name,loadSql=false){
+  selectedTable=catalogTables.find(table=>table.name===name)??null;
+  updateReorganize();updateExamples();
+  for(const details of $('tables').querySelectorAll('.table-entry'))details.open=details.dataset.table===selectedTable?.name;
+  if(loadSql&&selectedTable){$('sql').value=`SELECT * FROM ${selectedTable.name};`;highlight();$('sql').focus();}
+}
 $('examples').onchange=()=>{
-  const examples={select:'SELECT * FROM products WHERE product_id = 500;',range:'SELECT * FROM products\nWHERE product_id >= 100\n  AND product_id <= 110;',index:'CREATE INDEX idx_products_id\nON products(product_id) USING BTREE;',hash:'CREATE INDEX idx_products_hash\nON products(product_id) USING HASH;',demo:'CREATE TABLE products_demo (\n  id INT PRIMARY KEY,\n  name CHAR(40),\n  price FLOAT\n) USING SEQUENTIAL;',insert:"INSERT INTO products_demo\nVALUES (1, 'Teclado mecánico', 149.90);",delete:'DELETE FROM products_demo WHERE id = 1;',deleteAll:'DELETE FROM products_demo;',drop:'DROP TABLE products_demo;'};
-  if(examples[$('examples').value]){$('sql').value=examples[$('examples').value];highlight();} $('examples').value='';
+  const kind=$('examples').value;$('examples').value='';
+  if(busy||!kind)return;
+  try{const sql=sqlExample(kind,selectedTable,catalogTables);if(sql){$('sql').value=sql;highlight();$('sql').focus();}}
+  catch(error){setStatus(error.message,'error');}
 };
-$('reorganize').onclick=async()=>{if(busy||!selectedTable)return;setBusy(true);setStatus('Reorganizando principal y reconstruyendo índices…');try{const result=await reorganizeTable(selectedTable.name);metrics(result);setStatus(result.message,'success');}catch(error){setStatus(error.message,'error');}finally{setBusy(false);}};
+$('reorganize').onclick=async()=>{if(busy||!selectedTable)return;setBusy(true);setStatus('Reorganizando principal y reconstruyendo índices…');try{const result=await reorganizeTable(selectedTable.name);metrics(result);renderPlan(null,'Reorganización completada. Ejecuta una consulta para ver su nuevo plan.');setStatus(result.message,'success');}catch(error){setStatus(error.message,'error');}finally{setBusy(false);}};
+setupCsvImport({isBusy:()=>busy,setBusy,onImported:async result=>{
+  offset=0;currentSql='';selectedTable={name:result.table};
+  metrics(result);showResults(result);renderPlan(result.execution_plan);
+  $('sql').value=`SELECT * FROM ${result.table};`;highlight();
+  setStatus(`${result.message} · consulta preparada en el editor`,'success');
+  try{await refreshTables();}catch(error){setStatus(`${result.message}. No se pudo actualizar el explorador: ${error.message}`,'error');}
+}});
 highlight();
 Promise.all([health(),refreshTables()]).then(()=>{$('connection').replaceChildren(element('span','','dot'),document.createTextNode('Motor conectado'));}).catch(error=>{$('connection').classList.add('offline');$('connection').textContent='Sin conexión';setStatus(error.message,'error');});
