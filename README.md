@@ -87,9 +87,14 @@ CREATE INDEX idx_emp_id ON empleados(id) USING BTREE;
 SELECT nombre, salario FROM empleados WHERE id >= 100 AND id <= 500;
 CREATE INDEX hash_emp_id ON empleados(id) USING HASH;
 DELETE FROM empleados WHERE id = 101;
+DELETE FROM empleados WHERE salario < 1000 AND dept = 'Analytics';
+DELETE FROM empleados;
+DROP TABLE empleados;
 ```
 
 También se admite `USING SEQUENTIAL`, SELECT sin WHERE, proyección de columnas, operadores `=`, `<`, `>`, `<=`, `>=`, `!=`, `<>` y predicados combinados con AND. Una comilla literal se escribe `'O''Brien'`. No hay JOIN, UPDATE, OR, agregados, NULL ni SQL completo.
+
+`DELETE FROM tabla WHERE ...` elimina todas las filas que cumplen el filtro y actualiza los índices, incluido el de PRIMARY KEY. `DELETE FROM tabla` vacía la tabla y conserva su esquema e índices; la paginación no limita los borrados. `DROP TABLE tabla` elimina del catálogo la tabla y borra sus archivos de datos, overflow e índices (incluidos los directorios Hash). Después se puede crear otra tabla con el mismo nombre. Una tabla inexistente produce un error. El menú «Ejemplos rápidos» incluye borrar una fila, vaciar y eliminar `products_demo`.
 
 El planificador usa índices públicos: igualdad → `IndexScan`; rango con B+ → `IndexRangeScan`; resto → `SeqScan`. Si B+ y Hash aplican a igualdad, prefiere Hash. El índice privado de PRIMARY KEY no se utiliza para seleccionar filas. En Sequential, `SeqScan` puede usar búsqueda binaria y recorrido acotado del archivo ordenado.
 
@@ -175,7 +180,7 @@ Las cinco carpetas que antes estaban directamente bajo `backend/` se trasladaron
 .venv\Scripts\python.exe -m pytest backend/tests -q
 ```
 
-La última ejecución aprobó **41 pruebas, con 0 fallos**. La suite verifica Page Layout, RID, contador, offset, tipos, Heap/Free-List, Sequential/overflow/reorganización, B+ multinivel y rangos, Hash/doubling, persistencia, SQL, planner, executor y API. Las pruebas usan archivos temporales.
+La última ejecución aprobó **63 pruebas, con 0 fallos**. La suite verifica Page Layout, RID, contador, offset, tipos, Heap/Free-List, Sequential/overflow/reorganización, B+ multinivel y rangos, Hash/doubling, persistencia, SQL, planner, executor y API, incluidos DELETE masivos con mantenimiento de índices y DROP TABLE con recreación. Las pruebas usan archivos temporales.
 
 La reorganización a `backend/core/` se verificó con las mismas 41 pruebas antes y después, los cuatro experimentos con 1000 productos y una prueba HTTP/navegador en un proceso nuevo. Esas comprobaciones se guardan en `output/qa/core-refactor/` (excluido de Git); no sustituyen los CSV ni las gráficas históricos. También se compararon la lógica Python y los hashes de los datos/evidencias existentes.
 

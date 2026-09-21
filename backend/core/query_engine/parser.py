@@ -46,6 +46,9 @@ class SQLParser:
         command = self._take()[1].upper()
         if command == "CREATE":
             query = self._create()
+        elif command == "DROP":
+            self._expect("TABLE")
+            query = ParsedQuery("DROP_TABLE", self._identifier())
         elif command == "INSERT":
             self._expect("INTO")
             query = ParsedQuery("INSERT", self._identifier())
@@ -81,8 +84,6 @@ class SQLParser:
                     if not self._peek("AND"):
                         break
                     self._take()
-            elif command == "DELETE":
-                raise ValueError("DELETE requiere WHERE")
         else:
             raise ValueError(f"Sentencia SQL no soportada: {command}")
         if self._peek(";"):

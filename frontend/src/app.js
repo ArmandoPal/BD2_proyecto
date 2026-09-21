@@ -7,7 +7,7 @@ function element(tag, text, className='') { const node=document.createElement(ta
 function highlight() {
   const sql=$('sql').value;
   $('highlight').replaceChildren();
-  const pattern=/(--[^\n]*|'(?:''|[^'])*'|\b(?:SELECT|FROM|WHERE|AND|CREATE|TABLE|INDEX|USING|PRIMARY|KEY|HEAP|SEQUENTIAL|BTREE|HASH|INSERT|INTO|VALUES|DELETE|INT|FLOAT|CHAR)\b|\b\d+(?:\.\d+)?\b)/gi;
+  const pattern=/(--[^\n]*|'(?:''|[^'])*'|\b(?:SELECT|FROM|WHERE|AND|CREATE|TABLE|INDEX|USING|PRIMARY|KEY|HEAP|SEQUENTIAL|BTREE|HASH|INSERT|INTO|VALUES|DELETE|DROP|INT|FLOAT|CHAR)\b|\b\d+(?:\.\d+)?\b)/gi;
   let start=0;
   for (const match of sql.matchAll(pattern)) {
     $('highlight').append(document.createTextNode(sql.slice(start,match.index)));
@@ -58,6 +58,7 @@ async function execute(pageOffset=0, reuseExecutedSql=false){
 }
 async function refreshTables(){
   const {tables}=await listTables();$('tables').replaceChildren();
+  selectedTable=tables.find(table=>table.name===selectedTable?.name)??null;
   if(!tables.length){const empty=element('div','','table-detail');empty.append(element('p','Todavía no hay tablas.'),element('p','Usa «Crear tabla demo» o carga products con el importador.'));$('tables').append(empty);}
   for(const table of tables){
     const details=document.createElement('details');details.className='table-entry';details.open=selectedTable?.name===table.name;
@@ -80,7 +81,7 @@ $('previous').onclick=()=>execute(Math.max(0,offset-Number($('page-size').value)
 $('next').onclick=()=>execute(offset+Number($('page-size').value),true);
 $('page-size').onchange=()=>{if(!busy && total>0)execute(0,true);};
 $('examples').onchange=()=>{
-  const examples={select:'SELECT * FROM products WHERE product_id = 500;',range:'SELECT * FROM products\nWHERE product_id >= 100\n  AND product_id <= 110;',index:'CREATE INDEX idx_products_id\nON products(product_id) USING BTREE;',hash:'CREATE INDEX idx_products_hash\nON products(product_id) USING HASH;',demo:'CREATE TABLE products_demo (\n  id INT PRIMARY KEY,\n  name CHAR(40),\n  price FLOAT\n) USING SEQUENTIAL;',insert:"INSERT INTO products_demo\nVALUES (1, 'Teclado mecánico', 149.90);"};
+  const examples={select:'SELECT * FROM products WHERE product_id = 500;',range:'SELECT * FROM products\nWHERE product_id >= 100\n  AND product_id <= 110;',index:'CREATE INDEX idx_products_id\nON products(product_id) USING BTREE;',hash:'CREATE INDEX idx_products_hash\nON products(product_id) USING HASH;',demo:'CREATE TABLE products_demo (\n  id INT PRIMARY KEY,\n  name CHAR(40),\n  price FLOAT\n) USING SEQUENTIAL;',insert:"INSERT INTO products_demo\nVALUES (1, 'Teclado mecánico', 149.90);",delete:'DELETE FROM products_demo WHERE id = 1;',deleteAll:'DELETE FROM products_demo;',drop:'DROP TABLE products_demo;'};
   if(examples[$('examples').value]){$('sql').value=examples[$('examples').value];highlight();} $('examples').value='';
 };
 $('reorganize').onclick=async()=>{if(busy||!selectedTable)return;setBusy(true);setStatus('Reorganizando principal y reconstruyendo índices…');try{const result=await reorganizeTable(selectedTable.name);metrics(result);setStatus(result.message,'success');}catch(error){setStatus(error.message,'error');}finally{setBusy(false);}};

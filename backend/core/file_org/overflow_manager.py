@@ -16,9 +16,11 @@ class OverflowManager:
     def walk(self, head):
         current = RID(*head)
         visited = 0
+        # DELETE puede reducir el contador mientras consume este recorrido.
+        maximum = self.heap.count
         while current != NIL:
             data = self.heap.get(current)
-            if data is None or visited > self.heap.count:
+            if data is None or visited >= maximum:
                 raise ValueError("Enlace overflow corrupto")
             yield current, data[LINK.size :]
             current = RID(*LINK.unpack_from(data))
