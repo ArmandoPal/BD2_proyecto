@@ -1,9 +1,0 @@
-\section{Experimentación y rendimiento}
-\subsection{Método y reproducibilidad}
-Todos los experimentos leen el mismo CSV con \texttt{csv.DictReader} y lo convierten mediante el serializador del motor. Se conserva el orden ascendente de product\_id. La carga de índices B+ y Hash del experimento 1 incluye un Heap de productos completos y su índice; no se comparan únicamente pares clave/RID contra registros completos. Sus tiempos incluyen lectura del CSV, serialización y transferencias de archivos. No se incluye el Hash privado de unicidad del ejecutor en estas mediciones de estructuras aisladas.
-
-Los experimentos 2 y 3 comparten un fixture persistente de 100\,000 productos. El Sequential se reorganiza a 75\% antes de las búsquedas. Los índices apuntan a los RID reales del Heap y se cuenta la recuperación del registro, no solo el acceso al índice. El experimento 4 aísla el árbol B+ y no recupera payloads; sus RID son etiquetas de prueba. Las claves de búsqueda se generan con semilla 42. La desviación estándar reportada es poblacional.
-
-Las cifras provienen de operaciones reales, no de costos estimados. El SO mantiene su caché y la latencia depende del equipo y carga del sistema; pequeñas diferencias de tiempo entre índices no prueban superioridad general. La comparación de transferencias es más estable. Los resultados crudos, resúmenes CSV y gráficas se guardan en \texttt{benchmarks/results/} y \texttt{benchmarks/plots/}. Los experimentos se ejecutan secuencialmente entre sí.
-
-\input{secciones/resultados_generados}

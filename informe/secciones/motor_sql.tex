@@ -1,8 +1,0 @@
-\section{SQL, API y cliente web}
-El tokenizer propio distingue identificadores, operadores, literales, comentarios y cadenas con comillas simples escapadas. El parser produce \texttt{ParsedQuery}; acepta CREATE TABLE, INSERT INTO VALUES, CREATE INDEX, SELECT y DELETE con WHERE. Los tipos son INT, FLOAT y CHAR(n). Los filtros combinan comparaciones mediante AND. No se implementan JOIN, UPDATE, agregaciones, OR ni SQL completo.
-
-Las reglas del planificador son explícitas: igualdad con índice público aplicable utiliza IndexScan; rango con B+ utiliza IndexRangeScan; el resto utiliza SeqScan. Cuando hay B+ y Hash sobre una igualdad, se prefiere Hash. Hash nunca atiende rangos. En Sequential, el escaneo de la organización puede acotarse por la búsqueda binaria de la clave primaria aunque la ruta no use un índice secundario. Todos los predicados se vuelven a evaluar sobre los registros recuperados.
-
-La API ofrece \texttt{POST /api/query}, \texttt{GET /api/tables} y \texttt{POST /api/tables/reorganize}. Devuelve filas, ruta de acceso, índice, tiempos de parseo y ejecución, lecturas y escrituras. Se emplea un lock local para serializar solicitudes concurrentes del único proceso del servidor.
-
-El cliente HTML/CSS/JavaScript se sirve en el mismo origen mediante FastAPI. Integra explorador de esquemas e índices, editor con resaltado SQL, resultados paginados y panel de métricas con historial gráfico. El servidor conserva como máximo 1000 filas en cada respuesta y cuenta el total recorriendo la consulta. Cada cambio de página ejecuta de nuevo el SQL y muestra sus nuevas métricas. Se verificaron consultas reales, paginación y errores en tres anchuras de ventana, incluyendo 1366 y 1920 píxeles.

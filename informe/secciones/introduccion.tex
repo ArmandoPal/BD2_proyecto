@@ -1,6 +1,0 @@
-\section{Introducción y alcance}
-El proyecto materializa los componentes del Entregable 1 del enunciado de CS2042, período 2026-II. Las carpetas del repositorio original se conservan y se completan; se separan representación de páginas, serialización de registros, algoritmos de índices y ejecución SQL. No se emplea ningún motor de almacenamiento externo ni serialización de objetos Python para guardar tablas o índices.
-
-El dataset proporcionado, \texttt{products-500000.csv}, contiene exactamente 500\,000 filas y 14 columnas. La columna \texttt{Index} se mapea a \texttt{product\_id}; sus claves son enteros únicos crecientes entre 1 y 500\,000. El tamaño original es 90\,764\,217 bytes. Su procedencia externa no se presume: se utiliza el archivo recibido del usuario como dataset sintético del proyecto.
-
-Se verificaron las longitudes máximas de todos los campos en bytes UTF-8 antes de definir los tamaños CHAR. Cada producto ocupa 394 bytes. EAN se almacena como texto para conservar sus ceros iniciales; Added Date permanece como texto porque el subconjunto solicitado no define DATE. Los módulos espaciales, textuales y vectoriales pertenecen al Entregable 2 y no se implementan aquí.
