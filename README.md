@@ -259,15 +259,7 @@ Prueba corta opcional:
 
 **Estos comandos cortos sobrescriben los CSV/gráficas del mismo experimento.** Para conservar la evidencia completa, cópiala antes o vuelve a ejecutar los tamaños completos. Los fixtures quedan en `benchmarks/work/`, los datos tabulados en `benchmarks/results/` y las gráficas en `benchmarks/plots/`. Datos grandes y fixtures no se versionan; resultados y gráficas sí.
 
-## Informe y exposición
 
-Abre [EXPOSICION.md](EXPOSICION.md) durante la sustentación: contiene el orden de los 11 archivos principales, las funciones exactas y una demostración breve. `informe/main.tex` integra la descripción física y las cuatro comparaciones; `tools/build_report.py` genera las tablas desde los CSV reales y compila el PDF.
-
-```powershell
-.venv\Scripts\python.exe tools/build_report.py
-```
-
-Necesita [Tectonic](https://tectonic-typesetting.github.io/book/latest/installation/) o `pdflatex`. En este equipo se dispone del binario portátil oficial de Tectonic en `.tools/tectonic/`. Esa carpeta no se versiona; en otro equipo instala el compilador o usa `--compiler RUTA`. La primera compilación puede descargar paquetes LaTeX.
 
 ## Límites conocidos
 
