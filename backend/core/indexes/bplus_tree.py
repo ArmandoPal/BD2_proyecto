@@ -89,9 +89,7 @@ class BPlusTree:
             raise ValueError("Par clave/RID duplicado")
         leaf.keys.insert(position, entry)
 
-    # ============================================================
     # PARTE IMPORTANTE PARA EXPOSICION: SPLIT DE UNA HOJA DEL ARBOL B+
-    # ============================================================
     def _split_leaf(self, leaf, path):
         middle = len(leaf.keys) // 2
         right = BPlusNode(
@@ -110,9 +108,7 @@ class BPlusTree:
         self._write_node(leaf)
         self._insert_into_parent(leaf.page_id, right.keys[0], right.page_id, path)
 
-    # ============================================================
     # PARTE IMPORTANTE PARA EXPOSICION: PROPAGACION DEL SPLIT
-    # ============================================================
     def _insert_into_parent(self, left_id, separator, right_id, path):
         if not path:
             root = BPlusNode(
@@ -149,9 +145,7 @@ class BPlusTree:
     def search(self, key):
         return list(self.range_search(key, key))
 
-    # ============================================================
     # PARTE IMPORTANTE PARA EXPOSICION: RANGO POR HOJAS ENLAZADAS
-    # ============================================================
     def range_search(self, min_key=None, max_key=None):
         if min_key is None:
             leaf = self._read_node(self.root_page_id)

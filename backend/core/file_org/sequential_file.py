@@ -65,9 +65,7 @@ class SequentialFile:
     def _set_head(self, page, head):
         page.metadata = page.metadata[: self.key_codec.size] + LINK.pack(*head)
 
-    # ============================================================
     # PARTE IMPORTANTE PARA EXPOSICION: BUSQUEDA BINARIA EN PRINCIPAL
-    # ============================================================
     def _find_page(self, key):
         lo, hi, answer = 1, self.main_dm.num_pages() - 1, 1
         while lo <= hi:
@@ -183,10 +181,8 @@ class SequentialFile:
         self.main_dm.write_page(0, self._metadata())
         return True
 
-    # ============================================================
     # PARTE IMPORTANTE PARA EXPOSICION: REORGANIZACION POR MERGE
     # Memoria acotada a páginas y cursores; nunca se carga toda la tabla.
-    # ============================================================
     def reorganize(self):
         temporary = self.main_dm.filepath.with_suffix(".reorganizing")
         if temporary.exists():

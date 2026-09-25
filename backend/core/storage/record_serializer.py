@@ -21,10 +21,8 @@ class RecordSerializer:
             self.fields.append((name, dtype, self.record_size, size))
             self.record_size += size
 
-    # ============================================================
     # PARTE IMPORTANTE PARA EXPOSICION: REGISTROS Y FORMATO BINARIO
     # Los tamaños fijos permiten recuperar cada campo por su offset.
-    # ============================================================
     def pack(self, values):
         if isinstance(values, dict):
             values = [values[name] for name, _ in self.columns]

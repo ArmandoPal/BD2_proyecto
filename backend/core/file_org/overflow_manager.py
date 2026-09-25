@@ -26,9 +26,7 @@ class OverflowManager:
             current = RID(*LINK.unpack_from(data))
             visited += 1
 
-    # ============================================================
     # PARTE IMPORTANTE PARA EXPOSICION: OVERFLOW ORDENADO Y PERSISTENTE
-    # ============================================================
     def insert(self, head, record):
         key = self.key_of(record)
         previous, following = NIL, NIL

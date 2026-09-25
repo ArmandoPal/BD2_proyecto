@@ -3,7 +3,7 @@
 import struct
 from dataclasses import dataclass
 
-PAGE_SIZE = 4096
+PAGE_SIZE = 4096 
 HEADER = struct.Struct("<IIIii")
 LAYOUT = struct.Struct("<III")
 
@@ -47,9 +47,7 @@ class Page:
         self.records = bytearray(self.capacity * record_size)
         self._update_free_offset()
 
-    # ============================================================
     # PARTE IMPORTANTE PARA EXPOSICION: PAGE LAYOUT Y OFFSET DEL SLOT
-    # ============================================================
     @property
     def records_offset(self):
         return HEADER.size + LAYOUT.size + len(self.metadata) + self.capacity

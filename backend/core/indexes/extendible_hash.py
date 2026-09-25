@@ -74,9 +74,7 @@ class ExtendibleHash:
             hashlib.blake2b(self.codec.pack(key), digest_size=8).digest(), "little"
         )
 
-    # ============================================================
     # PARTE IMPORTANTE PARA EXPOSICION: CALCULO DEL BUCKET
-    # ============================================================
     def _bucket_index(self, key):
         return self._hash(key) & ((1 << self.global_depth) - 1)
 
@@ -123,17 +121,13 @@ class ExtendibleHash:
         bucket.entries.append(entry)
         self._write_bucket(bucket)
 
-    # ============================================================
     # PARTE IMPORTANTE PARA EXPOSICION: DUPLICACION DEL DIRECTORIO
-    # ============================================================
     def _double_directory(self):
         self.directory.double(1 << self.global_depth)
         self.global_depth += 1
         self.disk_manager.write_page(0, self._metadata())
 
-    # ============================================================
     # PARTE IMPORTANTE PARA EXPOSICION: SPLIT Y REDISTRIBUCION DE BUCKET
-    # ============================================================
     def _split_bucket(self, bucket):
         if bucket.local_depth == self.global_depth:
             self._double_directory()

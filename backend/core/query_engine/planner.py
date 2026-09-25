@@ -24,9 +24,7 @@ class QueryPlanner:
     def __init__(self, schema_manager):
         self.schema_manager = schema_manager
 
-    # ============================================================
     # PARTE IMPORTANTE PARA EXPOSICION: SELECCION DE RUTA DE ACCESO
-    # ============================================================
     def choose_access_path(self, query):
         table = self.schema_manager.get_table(query.table)
         indexes = [i for i in table.indexes if not i.internal]

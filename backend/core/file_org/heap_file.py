@@ -44,10 +44,8 @@ class HeapFile:
             raise ValueError("Página Heap corrupta")
         return page
 
-    # ============================================================
     # PARTE IMPORTANTE PARA EXPOSICION: HEAP INSERT Y FREE-LIST
     # La cabecera apunta a la primera página libre; no recorre el archivo.
-    # ============================================================
     def insert(self, record_bytes):
         if len(record_bytes) != self.record_size:
             raise ValueError("Registro de tamaño incorrecto")

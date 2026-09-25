@@ -38,9 +38,7 @@ class SQLParser:
             return float(value) if any(c in value.lower() for c in ".e") else int(value)
         raise ValueError("Se esperaba un número o texto entre comillas simples")
 
-    # ============================================================
     # PARTE IMPORTANTE PARA EXPOSICION: TOKENS -> PARSED QUERY
-    # ============================================================
     def parse(self, sql):
         self.tokens, self.position = tokenize(sql), 0
         command = self._take()[1].upper()

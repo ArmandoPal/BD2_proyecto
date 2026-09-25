@@ -57,9 +57,7 @@ class QueryExecutor:
         self.page_size = page_size
         self.counter = DiskCounter()
 
-    # ============================================================
     # PARTE IMPORTANTE PARA EXPOSICION: EJECUCION DEL PLAN Y METRICAS
-    # ============================================================
     def execute(self, sql, offset=0, limit=100):
         if offset < 0 or not 1 <= limit <= 1000:
             raise ValueError("Paginación inválida: offset >= 0 y limit entre 1 y 1000")

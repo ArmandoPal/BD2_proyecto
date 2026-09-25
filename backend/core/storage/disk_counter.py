@@ -2,9 +2,7 @@
 
 
 class DiskCounter:
-    # ============================================================
     # PARTE IMPORTANTE PARA EXPOSICION: I/O CONTADO, NO ESTIMADO
-    # ============================================================
     def __init__(self):
         self.reset()
 

@@ -21,9 +21,7 @@ class DiskManager:
             self.close()
             raise ValueError("Archivo truncado o tamaño de página incorrecto")
 
-    # ============================================================
     # PARTE IMPORTANTE PARA EXPOSICION: OFFSET FISICO Y TRANSFERENCIAS
-    # ============================================================
     def read_page(self, page_id):
         if not 0 <= page_id < self.num_pages():
             raise ValueError(f"Página inexistente: {page_id}")
