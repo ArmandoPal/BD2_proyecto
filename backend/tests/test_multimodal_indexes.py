@@ -8,6 +8,7 @@ from backend.core.storage.rid import RID
 from backend.core.multimodal.paged import BlobStore, FixedArray, pack_rid, unpack_rid
 from backend.core.multimodal.rtree import RTree, mindist
 from backend.core.multimodal.text import InvertedIndex, Analyzer, merge
+from backend.core.multimodal.vector import IVFIndex, distance
 
 
 def test_fixed_array_crosses_pages_and_reopens(tmp_path):
@@ -117,3 +118,33 @@ def test_stemming_and_normalization():
     assert analyzer.tokens("CAMISETAS y camisetas") == analyzer.tokens("camiseta camiseta")
     assert analyzer.tokens("café") == analyzer.tokens("cafe")
 
+
+@pytest.mark.parametrize("metric", ["COSINE", "L2"])
+def test_ivf_full_probes_equals_exact_and_numpy(tmp_path, metric):
+    rng = np.random.default_rng(55)
+    vectors = rng.normal(size=(230, 32)).astype(np.float32)
+    vectors[0] = 0
+    ids = [pack_rid(RID(i+1, 0)) for i in range(len(vectors))]
+    index = IVFIndex.build(tmp_path / metric, ids, vectors, clusters=9, metric=metric)
+    index.close()
+    counter = DiskCounter()
+    index = IVFIndex(tmp_path / metric, counter)
+    q = rng.normal(size=32).astype(np.float32)
+    expected = sorted(zip(ids, [distance(v, q, metric) for v in vectors]), key=lambda x: (x[1], x[0]))[:10]
+    exact = index.search(q, exact=True)
+    assert [i for i, _ in exact] == [i for i, _ in expected]
+    assert index.search(q, probes=9) == exact
+    counter.reset()
+    subset = index.search(q, probes=1)
+    few_reads = counter.disk_reads
+    counter.reset()
+    index.search(q, probes=9)
+    assert few_reads < counter.disk_reads
+    allowed = set(ids[10:30])
+    assert all(i in allowed for i, _ in index.search(q, probes=9, allowed=allowed))
+    assert len(index.search(q, radius=0, exact=True)) == 0
+    with pytest.raises(ValueError):
+        index.search([1, 2])
+    with pytest.raises(ValueError):
+        index.search([float("nan")]*32)
+    index.close()
