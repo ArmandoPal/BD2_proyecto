@@ -39,6 +39,7 @@ class QueryResult:
     exec_time_ms: float = 0
     message: str = ""
     execution_plan: dict | None = None
+    io_breakdown: dict = field(default_factory=dict)
 
     def to_dict(self):
         return asdict(self)
@@ -145,6 +146,7 @@ class QueryExecutor:
             "disk_reads": result.disk_reads, "disk_writes": result.disk_writes,
             "parse_time_ms": result.parse_time_ms, "exec_time_ms": result.exec_time_ms,
         })
+        result.io_breakdown = self.counter.breakdown()
         return result
 
     def explain(self, sql, offset=0, limit=100):
