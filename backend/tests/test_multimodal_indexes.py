@@ -7,6 +7,7 @@ from backend.core.storage.disk_counter import DiskCounter
 from backend.core.storage.rid import RID
 from backend.core.multimodal.paged import BlobStore, FixedArray, pack_rid, unpack_rid
 from backend.core.multimodal.rtree import RTree, mindist
+from backend.core.multimodal.text import InvertedIndex, Analyzer, merge
 
 
 def test_fixed_array_crosses_pages_and_reopens(tmp_path):
@@ -65,4 +66,54 @@ def test_rtree_duplicate_points_and_rectangles(tmp_path):
     with pytest.raises(ValueError):
         tree.insert((2, 2, 1, 1), RID(51, 0))
     tree.close()
+
+
+@pytest.mark.parametrize("operation", ["AND", "OR", "NOT"])
+def test_linear_merge_against_set_oracle(operation):
+    rng = random.Random(3)
+    for _ in range(50):
+        a, b = sorted(rng.sample(range(100), 30)), sorted(rng.sample(range(100), 20))
+        expected = {"AND": set(a)&set(b), "OR": set(a)|set(b), "NOT": set(a)-set(b)}[operation]
+        assert merge(a, b, operation) == sorted(expected)
+
+
+def test_inverted_boolean_ranking_and_persistence(tmp_path):
+    texts = {1: "red red blue shoes", 2: "blue cotton shirt", 3: "red leather shoes", 4: "cotton watch", 5: ""}
+    index = InvertedIndex.build(tmp_path / "text", texts.items())
+    index.close()
+    index = InvertedIndex(tmp_path / "text")
+    assert index.boolean("red AND shoes") == [1, 3]
+    assert index.boolean("red OR cotton AND shirt") == [1, 2, 3]
+    assert index.boolean("(red OR cotton) AND NOT leather") == [1, 2, 4]
+    assert index.boolean("red AND-NOT blue") == [3]
+    assert index.boolean("NOT red") == [2, 4, 5]
+    assert index.boolean("nonexistent") == []
+    with pytest.raises(ValueError):
+        index.boolean("red OR")
+    analyzer = Analyzer()
+    counts = {i: Counter(analyzer.tokens(t)) for i, t in texts.items()}
+    vocabulary = set().union(*(set(c) for c in counts.values()))
+    idf = {t: math.log10(len(texts)/sum(t in c for c in counts.values())) for t in vocabulary}
+    query = Counter(analyzer.tokens("red shoes"))
+    qv = {t: (1+math.log10(tf))*idf[t] for t, tf in query.items()}
+    expected = []
+    for i, c in counts.items():
+        dv = {t: (1+math.log10(tf))*idf[t] for t, tf in c.items()}
+        dot = sum(dv.get(t, 0)*v for t, v in qv.items())
+        if dot:
+            score = dot/math.sqrt(sum(v*v for v in dv.values())*sum(v*v for v in qv.values()))
+            expected.append((i, score))
+    expected.sort(key=lambda x: (-x[1], x[0]))
+    actual = index.rank("red shoes")
+    assert [i for i, _ in actual] == [i for i, _ in expected]
+    assert [s for _, s in actual] == pytest.approx([s for _, s in expected])
+    assert index.rank("unknown") == []
+    assert index.rank("red", allowed={3})[0][0] == 3
+    index.close()
+
+
+def test_stemming_and_normalization():
+    analyzer = Analyzer("spanish")
+    assert analyzer.tokens("CAMISETAS y camisetas") == analyzer.tokens("camiseta camiseta")
+    assert analyzer.tokens("café") == analyzer.tokens("cafe")
 
