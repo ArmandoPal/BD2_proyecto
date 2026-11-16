@@ -57,14 +57,21 @@ class QueryExecutor:
         self.planner = planner or QueryPlanner(self.schema_manager)
         self.page_size = page_size
         self.counter = DiskCounter()
+        from backend.core.multimodal.collection import MultimodalCollection
+        self.multimodal = MultimodalCollection(self)
 
     # PARTE IMPORTANTE PARA EXPOSICION: EJECUCION DEL PLAN Y METRICAS
     def execute(self, sql, offset=0, limit=100):
         if offset < 0 or not 1 <= limit <= 1000:
             raise ValueError("Paginación inválida: offset >= 0 y limit entre 1 y 1000")
+        from backend.core.multimodal.sql import MultimodalSQL
+        if MultimodalSQL.handles(sql):
+            return self.multimodal.execute(sql, offset, limit)
         self.counter.reset()
         start = time.perf_counter()
         query = SQLParser().parse(sql)
+        if self.multimodal.ready and query.table == self.multimodal.manifest()["table"] and query.kind in ("INSERT", "DELETE", "DROP_TABLE"):
+            raise ValueError("Colección multimodal publicada de solo lectura; reconstruye en otro directorio para mantener todos sus índices consistentes")
         parsed = time.perf_counter()
         result = QueryResult(offset=offset, limit=limit)
         if query.kind == "CREATE_TABLE":
