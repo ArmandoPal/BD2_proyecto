@@ -16,7 +16,11 @@ Desde la raíz, con **Python 3.12** instalado e internet en la primera preparaci
 python setup.py --full
 ```
 
+Si Windows abre Microsoft Store al usar `python` y el proyecto ya tiene `.venv`, ejecuta `.\.venv\Scripts\python.exe setup.py --full` desde la raíz del proyecto.
+
 El comando crea `.venv`, instala dependencias, descarga un shard de Fashion Product Images (136 MB) y los pesos ResNet-18 (45 MB), extrae características de 10100 imágenes, construye la colección de 10000 productos e inicia API + frontend. La instalación de PyTorch añade su propia descarga; reserva aproximadamente 3 GB libres. La primera preparación tarda varios minutos según el equipo. Conserva datos y características ya preparados.
+
+El descargador verifica tamaño, SHA-256 y metadatos Parquet antes de reutilizar el dataset. Si detecta una descarga o un `source.json` dañado, vuelve a descargarlo automáticamente; una descarga incompleta no reemplaza el archivo anterior.
 
 Abre **http://127.0.0.1:8000**. Documentación de la API: **http://127.0.0.1:8000/docs**. Detener: Ctrl+C. No abras el HTML como archivo.
 
