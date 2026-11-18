@@ -56,6 +56,8 @@ La clave se configura fuera del código versionado; `.env` está excluido de Git
 
 Si la clave está vacía, se utiliza OpenStreetMap con Leaflet y su atribución visible. El navegador solicita las teselas de `https://tile.openstreetmap.org/{z}/{x}/{y}.png` respetando su caché; no hay descarga masiva ni modo offline. Este uso interactivo sigue la [política del servicio de teselas de OpenStreetMap](https://operations.osmfoundation.org/policies/tiles/). La integración de Google no incluye una clave real: debe provenir de la cuenta del equipo. Con clave configurada, Google Maps muestra los productos, sus fichas y el radio de búsqueda; los resultados siguen recuperándose mediante el R-Tree propio. Los errores de clave, permisos o conexión aparecen junto al mapa sin borrar los resultados.
 
+Las tiendas sintéticas se distribuyen únicamente en sectores interiores de Lima, alejados de la costa, mediante `data/store_locations.py`. Para corregir una colección antigua, detén la API y ejecuta `python tools/repair_store_locations.py`. La utilidad conserva una copia de seguridad en `data/database/.location-backups`, modifica solo lon/lat y reconstruye el R-Tree manteniendo los RID, precios, imágenes y demás índices.
+
 ## Mapa con API key de Google Maps
 
 1. En tu proyecto de Google Cloud, habilita Maps JavaScript API, configura la facturación y crea una API key siguiendo la [guía oficial](https://developers.google.com/maps/documentation/javascript/get-api-key).
