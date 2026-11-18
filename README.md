@@ -48,7 +48,7 @@ Las imágenes, títulos y categorías son reales. **Precios y ubicaciones de tie
 ## Mapa con API key de Google Maps
 
 
-1. En tu proyecto de Google Cloud, habilita Maps JavaScript API, configura la facturación y crea una API key siguiendo la [guía oficial](https://developers.google.com/maps/documentation/javascript/get-api-key).
+1. En el proyecto, habilita Maps JavaScript API, configura la facturación y crea una API key siguiendo la [guía oficial](https://developers.google.com/maps/documentation/javascript/get-api-key).
 2. Copia `.env.example` a `.env` en la raíz y completa `GOOGLE_MAPS_API_KEY=tu_clave_real`.
 3. Reinicia con `.venv\Scripts\python.exe run.py` y recarga la página. Docker Compose también lee esa variable desde `.env`.
 
@@ -64,7 +64,7 @@ El mapa del catálogo muestra todos los productos que cumplen los filtros de cat
 
 ## Mapa con API key de Google Maps
 
-1. En tu proyecto de Google Cloud, habilita Maps JavaScript API, configura la facturación y crea una API key siguiendo la [guía oficial](https://developers.google.com/maps/documentation/javascript/get-api-key).
+1. En el proyecto, habilita Maps JavaScript API, configura la facturación y crea una API key siguiendo la [guía oficial](https://developers.google.com/maps/documentation/javascript/get-api-key).
 2. Copia `.env.example` a `.env` en la raíz y completa `GOOGLE_MAPS_API_KEY=tu_clave_real`.
 3. Reinicia con `.venv\Scripts\python.exe run.py` y recarga la página. Docker Compose también lee esa variable desde `.env`.
 
