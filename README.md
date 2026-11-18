@@ -74,9 +74,9 @@ Si la clave está vacía, se utiliza OpenStreetMap con Leaflet y su atribución 
 
 ## Entregables y evidencia
 
-- [Informe técnico PDF](informe/main.pdf) y [fuente LaTeX](informe/main.tex), con los cuatro integrantes, diagramas, formatos físicos, tablas, gráficas, análisis y límites.
+- [Informe técnico PDF](informe/main.pdf) y [fuente LaTeX](informe/main.tex)
 - [Matriz de requisitos](docs/TRAZABILIDAD.md), [arquitectura](docs/ARQUITECTURA.md) y [SQL/API multimodal](docs/SQL_P2.md).
-- [Guion de sustentación de 7-8 minutos](docs/SUSTENTACION.md), con una sección para cada integrante. **Queda a cargo del equipo grabar su participación real y añadir el enlace del video a la entrega del curso.**
+- [Guion de sustentación de 7-8 minutos](docs/SUSTENTACION.md)
 - [CSV, gráficas y verificaciones P2](benchmarks/p2/results), incluyendo los [planes EXPLAIN de PostgreSQL](benchmarks/p2/results/exp6_postgres_plans.json).
 - [Procedencia de datos y dependencias](docs/FUENTES.md).
 
