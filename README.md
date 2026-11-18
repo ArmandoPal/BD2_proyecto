@@ -58,6 +58,10 @@ Si la clave está vacía, se utiliza OpenStreetMap con Leaflet y su atribución 
 
 Las tiendas sintéticas se distribuyen por zonas urbanas del norte, centro, este y sur de Lima Metropolitana y Callao mediante `data/store_locations.py`. Se usa una mezcla gaussiana de centros de simulación y se rechazan puntos fuera de una máscara continental obtenida de los límites INEI/MINAM, con un margen interior aproximado de 350 m respecto al contorno. No representan tiendas reales ni densidades comerciales medidas. La máscara está incluida en `data/geography/lima_land.geojson`; no necesita internet ni Shapely para generar ubicaciones. Para actualizar una colección antigua, detén la API y ejecuta `python tools/repair_store_locations.py`. La utilidad conserva una copia de seguridad en `data/database/.location-backups`, modifica solo lon/lat y reconstruye el R-Tree manteniendo los RID, precios, imágenes y demás índices.
 
+Las tarjetas tienen paginación de 12 productos: Anterior/Siguiente, primera/última página y salto a un número de página. El contador muestra el intervalo y el total de coincidencias; cambiar la búsqueda o los filtros vuelve a la primera página. Se conserva el orden por relevancia textual, similitud visual o distancia; en IVF se recorren los candidatos de las listas seleccionadas por `probes`.
+
+El mapa del catálogo muestra todos los productos que cumplen los filtros de categoría, precio, texto y radio; sin filtros incluye los 10000 productos. Cambiar de página en las tarjetas no limita ese mapa. Las búsquedas por similitud visual y k-NN geográfico muestran los 12 mejores resultados en la vista de mapa. La ruta `/api/multimodal/map` recupera todas las coincidencias de catálogo/texto/radio; `/search` acepta `k` como tamaño de página y `offset` como desplazamiento, y devuelve `total_rows`, `offset` y `limit`.
+
 ## Mapa con API key de Google Maps
 
 1. En tu proyecto de Google Cloud, habilita Maps JavaScript API, configura la facturación y crea una API key siguiendo la [guía oficial](https://developers.google.com/maps/documentation/javascript/get-api-key).
